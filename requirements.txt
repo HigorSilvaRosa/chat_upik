@@ -1,0 +1,5 @@
+Django==1.8
+django-omnibus==0.2.0
+pyzmq==14.1.1
+sockjs-tornado==1.0.3
+tornado==3.1.1

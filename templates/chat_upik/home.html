@@ -23,10 +23,15 @@
             <div class="col">
                 <h2 class="text-center" id="room-name"></h2>
                 <hr/>
+                <button id="change-room-button" class="btn">Trocar de sala</button>
+                <hr/>
                 <div class="form-group">
-                    <label for="exampleInputEmail1">Mensagem</label>
+                    <label for="exampleInputEmail1">Enviar mensagem</label>
                     <input id="message-input" type="text" class="form-control" placeholder="Digite e aperte 'Enter'.">
                 </div>
+                <label for="exampleInputEmail1">Mensagens recebidas</label>
+                <ul id="message-list" class="list-group">
+                </ul>
             </div>
         </div>
     </div>
@@ -55,11 +60,6 @@
                 </div>
                 <label>Salas disponíveis</label>
                 <ul id="room-list" class="list-group">
-                    <li class="list-group-item">Cras justo odio</li>
-                    <li class="list-group-item">Dapibus ac facilisis in</li>
-                    <li class="list-group-item">Morbi leo risus</li>
-                    <li class="list-group-item">Porta ac consectetur ac</li>
-                    <li class="list-group-item">Vestibulum at eros</li>
                 </ul>
             </div>
         </div>
@@ -93,8 +93,10 @@
     WEB_SOCKET_CHANNEL.on('message', function(event) {
         var message = event.data.payload;
         if (ROOM_ID == message.chat_room.id){
-
+            var html = '<li class="list-group-item room" data-id="'+message.id+'"><strong>'+message.chat_user.name+':</strong> '+message.message+'</li>'
+            $('#message-list').prepend(html);
         }
+
     });
 
     // Webservice functions
@@ -111,12 +113,13 @@
 
     function sendMessage(message) {
         $.post("api/send-message", {message: message, user_id: USER_ID, room_id: ROOM_ID}, function (data) {
-
+            $("#message-input").val("");
         });
     }
 
     function createNewRoom(name) {
         $.post("api/create-new-room", {name: name}, function (data) {
+            $("#new-room-input").val("");
             renderRoomList();
         });
     }
@@ -182,7 +185,8 @@
     }
 
     function closeChatPage() {
-
+        $("#chat-page").hide();
+        $("#message-input").val("");
     }
 
     function closeAllPages() {
@@ -209,6 +213,10 @@
             if(e.which == 13) {
                 sendMessage($(this).val());
             }
+        });
+
+        $("#change-room-button").click(function () {
+            openRoomsPage();
         });
 
 
