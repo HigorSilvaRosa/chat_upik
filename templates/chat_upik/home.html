@@ -1,0 +1,225 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Chat Upik</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="{% static "chat_upik/css/bootstrap.min.css" %}">
+</head>
+<body>
+<div class="container">
+
+    <div class="row">
+        <div class="col">
+            <h1 class="text-center">Chat Upik</h1>
+            <hr/>
+        </div>
+    </div>
+
+    <div id="chat-page" style="display: none">
+        <div class="row">
+            <div class="col">
+                <h2 class="text-center" id="room-name"></h2>
+                <hr/>
+                <div class="form-group">
+                    <label for="exampleInputEmail1">Mensagem</label>
+                    <input id="message-input" type="text" class="form-control" placeholder="Digite e aperte 'Enter'.">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="new-user-page" style="display: none">
+        <div class="row">
+            <div class="col">
+                <h2 class="text-center">Entrar</h2>
+                <hr/>
+                <div class="form-group">
+                    <label for="exampleInputEmail1">Seu apelido</label>
+                    <input id="new-user-input" type="text" class="form-control" placeholder="Digite e aperte 'Enter'.">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="rooms-page" style="display: none">
+        <div class="row">
+            <div class="col">
+                <h2 class="text-center">Escolha uma sala</h2>
+                <hr/>
+                <div class="form-group">
+                    <label>Nova sala</label>
+                    <input id="new-room-input" type="text" class="form-control" placeholder="Digite e aperte 'Enter'.">
+                </div>
+                <label>Salas disponíveis</label>
+                <ul id="room-list" class="list-group">
+                    <li class="list-group-item">Cras justo odio</li>
+                    <li class="list-group-item">Dapibus ac facilisis in</li>
+                    <li class="list-group-item">Morbi leo risus</li>
+                    <li class="list-group-item">Porta ac consectetur ac</li>
+                    <li class="list-group-item">Vestibulum at eros</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="{% static 'omnibus/omnibus.min.js' %}"></script>
+<script src="{% static "chat_upik/js/jquery-3.1.0.min.js" %}"></script>
+<script src="{% static "chat_upik/js/popper.min.js" %}"></script>
+<script src="{% static "chat_upik/js/bootstrap.min.js" %}"></script>
+<script src="{% static "chat_upik/js/app.js" %}"></script>
+
+<script>
+
+    var USER_ID = localStorage.getItem("user_id");
+    var USER_NAME =  localStorage.getItem("user_name");
+
+    var ROOM_ID = null;
+    var ROOM_NAME = null;
+
+    var WEB_SOCKET = WebSocket;
+    var WEB_SOCKET_URL = '{{ OMNIBUS_ENDPOINT }}';
+    var WEB_SOCKET_OPTIONS = {
+        authToken: '{{ OMNIBUS_AUTH_TOKEN }}'
+    };
+    var WEB_SOCKET_CONNECTION = new Omnibus(WEB_SOCKET, WEB_SOCKET_URL, WEB_SOCKET_OPTIONS);
+
+    var WEB_SOCKET_CHANNEL = WEB_SOCKET_CONNECTION.openChannel('chat');
+
+    WEB_SOCKET_CHANNEL.on('message', function(event) {
+        var message = event.data.payload;
+        if (ROOM_ID == message.chat_room.id){
+
+        }
+    });
+
+    // Webservice functions
+
+    function createNewUser(name) {
+        $.post("api/create-new-user", {name: name}, function (data) {
+            USER_ID = data.id;
+            localStorage.setItem("user_id", USER_ID);
+            USER_NAME =  data.name;
+            localStorage.setItem("user_name", USER_NAME);
+            openRoomsPage();
+        });
+    }
+
+    function sendMessage(message) {
+        $.post("api/send-message", {message: message, user_id: USER_ID, room_id: ROOM_ID}, function (data) {
+
+        });
+    }
+
+    function createNewRoom(name) {
+        $.post("api/create-new-room", {name: name}, function (data) {
+            renderRoomList();
+        });
+    }
+
+    function renderRoomList() {
+        $.get("api/room-list", function (data) {
+            $("#room-list").html("");
+            var html = "";
+            for (var i in data){
+                var room =  data[i]
+                html += '<li class="list-group-item room" data-id="'+room.id+'">'+room.name+'</li>'
+            }
+            $("#room-list").html(html);
+
+            $("#room-list .room").click(function () {
+                ROOM_ID = $(this).attr("data-id");
+                ROOM_NAME = $(this).text();
+                openChatPage();
+            });
+        });
+    }
+
+
+    // Navegation functions
+
+    function openRoomsPage(){
+        closeAllPages();
+
+        ROOM_ID = null;
+        ROOM_NAME = null;
+
+        $("#rooms-page").show();
+        renderRoomList();
+    }
+
+    function openNewUserPage(){
+        closeAllPages();
+
+        USER_ID = null;
+        USER_NAME = null;
+
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("user_name");
+
+        $("#new-user-page").show();
+    }
+
+    function openChatPage() {
+        closeAllPages();
+        $("#room-name").text("Sala: "+ROOM_NAME);
+        $("#chat-page").show();
+
+    }
+
+    function closeRoomsPage(){
+        $("#rooms-page").hide();
+        $("#new-room-input").val("");
+    }
+
+    function closeNewUserPage(){
+        $("#new-user-page").hide();
+        $("#new-user-input").val("")
+    }
+
+    function closeChatPage() {
+
+    }
+
+    function closeAllPages() {
+        closeNewUserPage();
+        closeRoomsPage();
+        closeChatPage();
+    }
+
+    $(document).ready(function () {
+
+        $("#new-user-input").keypress(function(e) {
+            if(e.which == 13) {
+                createNewUser($(this).val());
+            }
+        });
+
+        $("#new-room-input").keypress(function(e) {
+            if(e.which == 13) {
+                createNewRoom($(this).val());
+            }
+        });
+
+        $("#message-input").keypress(function(e) {
+            if(e.which == 13) {
+                sendMessage($(this).val());
+            }
+        });
+
+
+        if (!USER_ID){
+            openNewUserPage();
+        }else{
+            openRoomsPage();
+        }
+    })
+
+
+</script>
+</body>
+</html>
